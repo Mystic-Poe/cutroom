@@ -3,7 +3,7 @@ type: spec
 project: cutroom
 created: 2026-11-19
 revised: 2026-11-19 (r2, aligned with ai-editing-guide)
-status: draft (awaiting Poe's review)
+status: approved, v0.1.0 shipped 2026-11-19
 tags: [claude-code, plugin, video-editing, davinci-resolve, safety]
 ---
 # cutroom: Project 1, Calm shell (design, r2)
