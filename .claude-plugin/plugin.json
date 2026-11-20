@@ -1,0 +1,10 @@
+{
+  "name": "cutroom",
+  "version": "0.1.0",
+  "description": "A calm, safe Claude Code terminal for video editors working in DaVinci Resolve.",
+  "author": { "name": "Mystic-Poe" },
+  "homepage": "https://github.com/Mystic-Poe/cutroom",
+  "license": "MIT",
+  "keywords": ["video-editing", "davinci-resolve", "safety", "statusline"],
+  "types": "./types/index.d.ts"
+}
