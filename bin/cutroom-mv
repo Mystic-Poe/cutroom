@@ -4,7 +4,14 @@
 // Moves or renames. Never overwrites. Every move is logged so it can be undone.
 const path = require('node:path');
 const { move, describe } = require(path.join(__dirname, '..', 'lib', 'moves'));
-const args = process.argv.slice(2).filter((a) => a !== '--');
+const { operands } = require(path.join(__dirname, '..', 'lib', 'args'));
+let args;
+try {
+  args = operands(process.argv.slice(2));
+} catch (err) {
+  console.error(err.message);
+  process.exit(2);
+}
 if (args.length < 2) {
   console.error('Usage: cutroom-mv <source...> <destination>');
   process.exit(2);

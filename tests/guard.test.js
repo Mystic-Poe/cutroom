@@ -221,3 +221,12 @@ test('protected settings are found through symlinks and case (macOS)', () => {
     delete process.env.CUTROOM_CASEFOLD;
   }
 });
+
+test('guard and cutroom-mv read arguments the same way (security review)', () => {
+  // a dash-named file in raw/ must not slip past the raw/ check
+  assert.equal(verdict('Bash', { command: 'cutroom-mv -- raw/A.mov clips/' }), 'ask');
+  assert.equal(verdict('Bash', { command: 'cutroom-mv -raw/A.mov clips/' }), 'deny');
+  assert.equal(verdict('Bash', { command: 'cutroom-mv raw/A.mov -- clips/' }), 'deny');
+  assert.equal(verdict('Bash', { command: 'cutroom-trash -f a.mov' }), 'deny');
+  assert.equal(verdict('Bash', { command: 'cutroom-trash -- a.mov' }), 'ask');
+});

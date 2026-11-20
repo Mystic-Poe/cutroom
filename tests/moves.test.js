@@ -106,3 +106,15 @@ test('trash twice with the same name does not collide', () => {
   assert.equal(r.code, 0, r.err);
   assert.equal(fs.readdirSync(trash).length, 2);
 });
+
+test('bins refuse dash-looking arguments instead of guessing', () => {
+  const { d, env } = setup();
+  fs.writeFileSync(path.join(d, 'a.mov'), 'A');
+  const r = run('cutroom-mv', ['-x', path.join(d, 'a.mov'), path.join(d, 'b.mov')], { env });
+  assert.equal(r.code, 2);
+  assert.ok(fs.existsSync(path.join(d, 'a.mov')));
+  const ok = run('cutroom-mv', ['--', path.join(d, 'a.mov'), path.join(d, 'b.mov')], { env });
+  assert.equal(ok.code, 0, ok.err);
+  const t = run('cutroom-trash', ['-rf', path.join(d, 'b.mov')], { env });
+  assert.equal(t.code, 2);
+});

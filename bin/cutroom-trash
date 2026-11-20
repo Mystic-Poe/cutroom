@@ -4,7 +4,14 @@
 // Moves files to the macOS Trash (via Finder, so "Put Back" works). Logged for undo.
 const path = require('node:path');
 const { trash, describe } = require(path.join(__dirname, '..', 'lib', 'moves'));
-const args = process.argv.slice(2).filter((a) => a !== '--');
+const { operands } = require(path.join(__dirname, '..', 'lib', 'args'));
+let args;
+try {
+  args = operands(process.argv.slice(2));
+} catch (err) {
+  console.error(err.message);
+  process.exit(2);
+}
 if (!args.length) {
   console.error('Usage: cutroom-trash <paths...>');
   process.exit(2);
