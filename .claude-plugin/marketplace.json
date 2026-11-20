@@ -6,7 +6,7 @@
     {
       "name": "cutroom",
       "description": "A calm, safe Claude Code terminal for video editors working in DaVinci Resolve.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "./"
     }
   ]

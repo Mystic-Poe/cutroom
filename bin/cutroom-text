@@ -1,0 +1,79 @@
+#!/usr/bin/env node
+'use strict';
+// cutroom-text <size>   make the text in Mac's Terminal bigger (every new window keeps it)
+// cutroom-text reset    put back the size from before cutroom changed it
+// cutroom-text          show the current size
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const { file, readJson, writeJsonAtomic } = require(path.join(__dirname, '..', 'lib', 'home'));
+
+const isMac = process.env.CUTROOM_FORCE_MAC ? process.env.CUTROOM_FORCE_MAC === '1' : process.platform === 'darwin';
+const OSA = process.env.CUTROOM_OSASCRIPT || 'osascript';
+const STATE = file('text.json');
+
+function osa(script) {
+  const r = spawnSync(OSA, ['-e', script], { encoding: 'utf8', timeout: 15000 });
+  if (r.status !== 0) {
+    const why = (r.stderr || '').trim();
+    if (/not allowed|-1743|not authori[sz]ed/i.test(why)) throw new Error('macOS blocked it. Open System Settings → Privacy & Security → Automation, allow Terminal to control "Terminal", then try again.');
+    throw new Error(why || 'Terminal did not answer.');
+  }
+  return (r.stdout || '').trim();
+}
+
+const current = () => Number(osa('tell application "Terminal" to get font size of default settings'));
+
+function apply(size) {
+  // the default profile (all new windows) and every open tab
+  osa(`tell application "Terminal"
+set font size of default settings to ${size}
+repeat with w in windows
+repeat with t in tabs of w
+try
+set font size of current settings of t to ${size}
+end try
+end repeat
+end repeat
+end tell`);
+}
+
+function main() {
+  if (!isMac) {
+    console.log("Text size is set in the terminal app. cutroom can change it for Mac's Terminal; in other apps, use its settings (or ⌘+ / ⌘−).");
+    return 0;
+  }
+  const arg = (process.argv[2] || '').trim();
+  if (!arg) {
+    console.log(`Terminal text size is ${current()} pt.`);
+    return 0;
+  }
+  if (arg === 'reset') {
+    const s = readJson(STATE, null);
+    if (!s || !s.previous) {
+      console.log('cutroom never changed the text size, so there is nothing to put back.');
+      return 0;
+    }
+    apply(s.previous);
+    writeJsonAtomic(STATE, { previous: null, size: s.previous });
+    console.log(`Text size is back to ${s.previous} pt.`);
+    return 0;
+  }
+  if (!/^\d{1,2}$/.test(arg) || Number(arg) < 9 || Number(arg) > 36) {
+    console.error('Give a size between 9 and 36, like: cutroom-text 18');
+    return 2;
+  }
+  const size = Number(arg);
+  const before = readJson(STATE, null);
+  const previous = before && before.previous ? before.previous : current();
+  apply(size);
+  writeJsonAtomic(STATE, { previous, size });
+  console.log(`Terminal text is now ${size} pt (it was ${previous}). New windows keep it. Say "put the text size back" to undo.`);
+  return 0;
+}
+
+try {
+  process.exit(main());
+} catch (err) {
+  console.error(`Couldn't change the text size: ${err.message}`);
+  process.exit(1);
+}

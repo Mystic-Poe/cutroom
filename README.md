@@ -4,8 +4,14 @@ A calm, safe Claude Code terminal for video editors who work in **DaVinci Resolv
 
 cutroom keeps all the power of Claude Code in the terminal. It also makes the terminal feel like an editing suite, and makes it hard for anything to go wrong with your footage:
 
+- **Plain English instead of code**
+  - every action shows as one sentence, like `✓ Checked the frame rate of 3 clips`;
+  - command output and code diffs are hidden unless something fails;
+  - **ctrl+o** shows the full details whenever you want them.
+- **Bigger text**: setup offers 16, 18 or 20 pt in Mac's Terminal (`cutroom-text reset` puts it back).
 - **A calmer look**
   - a muted colour theme;
+  - editing words on the spinner (*Cutting… Conforming… Rendering…*);
   - a status line that shows your video folder, whether Resolve is open, free drive space, your Claude usage and your Higgsfield credits;
   - one line above the prompt that shows what's running right now.
 - **An editing partner, not a programmer**
@@ -59,7 +65,9 @@ Then restart Claude (`/exit`, then `claude`), and run:
 - **Shows you the exact settings it will change, then asks before writing them:**
   - status line;
   - theme;
+  - spinner words;
   - spinner tips off.
+- **Offers bigger text** in Mac's Terminal.
 
   A backup of your settings is kept.
 
@@ -67,6 +75,14 @@ Run `/cutroom-setup check` any time to see if anything is missing.
 
 ### The first time Claude moves something to the Trash
 macOS may ask *"Terminal wants to control Finder"*. Click **OK**: that's how files go to the real Trash, where *Put Back* works.
+
+## Updating
+
+Paste into Claude:
+
+```
+Update cutroom: run claude plugin update cutroom@cutroom, then tell me to restart you. After the restart, I'll run /cutroom-setup again.
+```
 
 ## Everyday use
 
@@ -77,6 +93,8 @@ macOS may ask *"Terminal wants to control Finder"*. Click **OK**: that's how fil
 | `/what-happened` | a plain-English replay of what Claude did here; add what looks wrong, e.g. `/what-happened clips are red in Resolve` |
 | `/cutroom-help` | examples of what to ask for |
 | `/cutroom-setup check` | health check |
+| ctrl+o | show or hide the full technical details |
+| "make the text bigger" | changes the Terminal text size |
 
 ## What's protected
 
@@ -118,11 +136,11 @@ Your previous settings are in `~/.claude/settings.json.cutroom-backup-*` if you 
 ## For developers
 
 - Plain Node (no dependencies) in `bin/` and `lib/`.
-- One mod in `mod/band.tsx`.
+- One mod (`mod/index.tsx`): the band above the prompt (`band.tsx`) and the plain-English tool rows (`rows.tsx`, wording in `plain.ts`).
 - Markdown commands in `commands/`, plus the Editor output style.
 - **Tests:**
   - `npm test` (node:test);
-  - `claude plugin test .` (band);
+  - `claude plugin test .` (band and rows);
   - `claude plugin validate .`.
 - Specs and plans: `claude-vault/`.
 

@@ -19,6 +19,7 @@ test('--diff on empty settings lists the three changes and writes nothing', () =
   assert.match(r.out, /statusLine/);
   assert.match(r.out, /custom:cutroom/);
   assert.match(r.out, /spinnerTipsEnabled/);
+  assert.match(r.out, /spinnerVerbs/);
   assert.equal(fs.existsSync(e.settings), false);
 });
 
@@ -32,6 +33,8 @@ test('--write merges, keeps other keys, backs up, installs launcher and theme', 
   assert.deepEqual(s.permissions, { allow: ['Bash(ls)'] });
   assert.equal(s.theme, 'custom:cutroom');
   assert.equal(s.spinnerTipsEnabled, false);
+  assert.equal(s.spinnerVerbs.mode, 'replace');
+  assert.ok(s.spinnerVerbs.verbs.includes('Rendering'));
   assert.equal(s.statusLine.refreshInterval, 5);
   assert.match(s.statusLine.command, /statusline\.sh$/);
   const backups = fs.readdirSync(e.claude).filter((f) => f.startsWith('settings.json.cutroom-backup-'));

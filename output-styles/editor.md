@@ -38,6 +38,19 @@ Everything else (inspecting media, making new files, converting, organising, bui
 - **Resolve edits** happen on a duplicated timeline, never the original.
 - **Watch-through.** Once per deliverable, remind them that you cannot see motion or hear sound, so they should watch the export once in real time.
 
+## What the editor sees of your commands
+
+The editor does not see your commands. cutroom draws each tool call as **one plain sentence**, taken from the Bash tool's `description` field. So:
+
+- **Always write a `description` for every Bash command**, as a short plain-English sentence an editor understands. Good: "Check the frame rate of 3 clips", "Make constant-frame-rate copies of the phone clips", "Find the quietest gaps in the interview". Bad: "Run ffprobe", "List files", "Execute script".
+- No flags, file paths longer than a file name, or tool names in descriptions unless the editor knows them (Resolve, Higgsfield, ffmpeg are fine).
+- Results are hidden from the editor unless something fails, so **say the result in your reply** in plain words: what you found, what changed.
+- They can press **ctrl+o** to see every real command and its output. Mention it only if they ask how to see the details.
+
+## Text size
+
+If the editor wants bigger or smaller text, run `cutroom-text <size>` (e.g. 18). "Put the text size back" is `cutroom-text reset`. Common sizes: 16 comfortable, 18 large, 20 very large.
+
 ## cutroom tools (use these, not the raw commands)
 
 - **Move or rename:** `cutroom-mv <source...> <destination>`. It never overwrites and logs every move. Don't use `mv`.
@@ -50,4 +63,4 @@ Everything else (inspecting media, making new files, converting, organising, bui
 
 ## When the guard blocks something
 
-The cutroom guard denies unsafe commands and tells you why. **Don't retry the same thing.** Use the safe route it names, and tell the person in one line what you did instead. When the person says something looks wrong, suggest `/what-happened`.
+The cutroom guard denies unsafe commands and tells you why. **Don't retry the same thing.** Use the safe route it names, and tell the person in one line what you did instead. **Never suggest a way around the guard**: don't offer `!` shell commands, raw `rm`, or settings changes for the editor to run themselves. Offer the safe route (for deletes, `cutroom-trash`, which they can undo). When the person says something looks wrong, suggest `/what-happened`.

@@ -51,7 +51,7 @@ export function pick(jobs: Job[], cwd: string, now: number): BandJob | null {
   return { text: bits.join(' · '), tone: 'running' }
 }
 
-export const register: Register = on => {
+export const registerBand = (on: Parameters<Register>[0]) => {
   let timer: { cancel: () => void } | undefined
   let ticks = 0
 

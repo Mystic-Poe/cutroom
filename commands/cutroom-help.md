@@ -36,6 +36,15 @@ Show the editor the guide below, as is (you may shorten nothing, add nothing). T
 - Type **`/what-happened`**. Claude replays what it did and helps you find why.
 - Type **`/cutroom-setup check`** to see if anything is missing.
 
+**Reading the screen**
+- Each thing Claude does shows as **one plain line**:
+  - **◐** working on it
+  - **✓** done
+  - **✕** didn't work (Claude explains)
+  - **■** stopped by cutroom's safety rails, or by you
+- Press **ctrl+o** to see the full technical details; press it again to hide them.
+- Bigger or smaller text: just say "make the text bigger" (or "put the text size back").
+
 **What's on screen**
 - **The line above the prompt** shows what's running right now.
 - **The status line at the bottom** shows:

@@ -4,7 +4,7 @@
 // cutroom-apply-settings --write         apply it (keeps a backup of settings.json)
 // cutroom-apply-settings --config '<json>'  write ~/.cutroom/config.json
 //
-// Changes only: statusLine, theme, spinnerTipsEnabled. Everything else in
+// Changes only: statusLine, theme, spinnerTipsEnabled, spinnerVerbs. Everything else in
 // settings.json is left exactly as it was.
 const fs = require('node:fs');
 const os = require('node:os');
@@ -22,6 +22,10 @@ function wanted() {
     statusLine: { type: 'command', command: LAUNCHER, padding: 0, refreshInterval: 5 },
     theme: 'custom:cutroom',
     spinnerTipsEnabled: false,
+    spinnerVerbs: {
+      mode: 'replace',
+      verbs: ['Cutting', 'Trimming', 'Syncing', 'Conforming', 'Grading', 'Rendering', 'Logging', 'Scrubbing', 'Transcoding', 'Splicing', 'Reviewing', 'Assembling'],
+    },
   };
 }
 

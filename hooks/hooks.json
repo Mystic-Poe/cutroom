@@ -1,5 +1,5 @@
 {
-  "modules": ["../mod/band.tsx"],
+  "modules": ["../mod/index.tsx"],
   "hooks": {
     "PreToolUse": [
       {
