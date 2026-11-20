@@ -10,7 +10,7 @@ const lib = path.join(__dirname, '..', 'lib');
 const { file, readJson } = require(path.join(lib, 'home'));
 
 const FAST = process.env.CUTROOM_DOCTOR_FAST === '1';
-const CLAUDE_DIR = process.env.CUTROOM_CLAUDE_DIR || path.join(os.homedir(), '.claude');
+const CLAUDE_DIR = process.env.CUTROOM_CLAUDE_DIR || process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
 const sh = (cmd, args, timeout = 8000) => {
   try {
     const r = spawnSync(cmd, args, { encoding: 'utf8', timeout });

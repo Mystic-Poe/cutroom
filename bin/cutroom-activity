@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+'use strict';
+// cutroom-activity [--all] [--hours N] [--limit N]
+// Prints what Claude did in this folder (or everywhere with --all), oldest first,
+// merged with file moves. Used by /what-happened.
+const path = require('node:path');
+const os = require('node:os');
+const lib = path.join(__dirname, '..', 'lib');
+const { forFolder } = require(path.join(lib, 'activity'));
+const { file, readJsonl } = require(path.join(lib, 'home'));
+
+const argv = process.argv.slice(2);
+const opt = (name, d) => {
+  const i = argv.indexOf(name);
+  return i === -1 ? d : Number(argv[i + 1]);
+};
+const all = argv.includes('--all');
+const hours = opt('--hours', 24);
+const limit = opt('--limit', 80);
+const cwd = all ? null : process.cwd();
+const since = Date.now() - hours * 3600e3;
+const inFolder = (p) => !cwd || p === cwd || (p || '').startsWith(cwd + path.sep);
+const tidy = (p) => String(p).replace(cwd ? cwd + path.sep : '\0', '').replace(os.homedir(), '~');
+
+const rows = forFolder(cwd, { since }).map((e) => ({
+  ts: e.ts,
+  text: e.guard ? `${e.summary}` : `${e.ok ? '' : 'FAILED: '}${e.summary}${e.error ? ` (${e.error})` : ''}`,
+}));
+for (const m of readJsonl(file('moves.log'))) {
+  if (Date.parse(m.ts) < since) continue;
+  if (m.kind === 'undo') {
+    rows.push({ ts: m.ts, text: `undid move batch ${m.batch}` });
+    continue;
+  }
+  if (!inFolder(m.from) && !inFolder(m.to)) continue;
+  rows.push({ ts: m.ts, text: `${m.kind === 'trash' ? 'moved to Trash' : 'moved'} ${tidy(m.from)} → ${tidy(m.to)} (batch ${m.batch})` });
+}
+rows.sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
+const shown = rows.slice(-limit);
+if (!shown.length) {
+  console.log(`Nothing logged ${all ? '' : 'in this folder '}in the last ${hours} hours.`);
+  process.exit(0);
+}
+for (const r of shown) {
+  const t = new Date(r.ts);
+  console.log(`${t.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${t.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}  ${r.text}`);
+}

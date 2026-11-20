@@ -13,7 +13,7 @@ const lib = path.join(__dirname, '..', 'lib');
 const { cutroomHome, file, readJson, writeJsonAtomic } = require(path.join(lib, 'home'));
 
 const ROOT = path.resolve(__dirname, '..');
-const CLAUDE_DIR = process.env.CUTROOM_CLAUDE_DIR || path.join(os.homedir(), '.claude');
+const CLAUDE_DIR = process.env.CUTROOM_CLAUDE_DIR || process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
 const SETTINGS = path.join(CLAUDE_DIR, 'settings.json');
 const LAUNCHER = path.join(cutroomHome(), 'statusline.sh');
 
