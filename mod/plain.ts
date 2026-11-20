@@ -29,8 +29,14 @@ const sentenceCase = (s: string): string => {
 
 const humanize = (id: string): string => id.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
 
-// cutroom's own bookkeeping calls draw no row at all
-const SILENT = /^\s*(cutroom-job|cutroom-log)\b/
+// cutroom's own bookkeeping calls draw no row, but only a lone, plain
+// invocation: anything chained onto it (; && | $( ) > < newline) still shows.
+const SILENT = /^\s*cutroom-(job|log)(\s+("[^"`$\\]*"|'[^']*'|[\w./:@%+=,-]+))*\s*$/
+const SHELL_OPS = /[;&|`\n\r<>]|\$\(/
+const isSilent = (cmd: string): boolean => {
+  const unquoted = cmd.replace(/'[^']*'/g, "''").replace(/"[^"`$\\]*"/g, '""')
+  return SILENT.test(cmd) && !SHELL_OPS.test(unquoted)
+}
 
 const FIRST_WORD: Record<string, string> = {
   ffprobe: 'Checked the media details',
@@ -62,7 +68,7 @@ const FIRST_WORD: Record<string, string> = {
 
 function bashSentence(input: Input): string | null {
   const cmd = str(input.command)
-  if (SILENT.test(cmd)) return null
+  if (isSilent(cmd)) return null
   const d = str(input.description)
   if (d) return sentenceCase(clean(d))
   const word = (cmd.trim().split(/\s+/)[0] || '').split('/').pop() || ''
