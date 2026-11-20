@@ -13,7 +13,12 @@ const rgb = (hex) => {
   const n = parseInt(hex.slice(1), 16);
   return `\x1b[38;2;${n >> 16};${(n >> 8) & 255};${n & 255}m`;
 };
-const paint = (hex, s) => (plain ? s : `${rgb(hex)}${s}\x1b[0m`);
+// strip control characters (terminal escape injection) and cap length
+const clean = (s, n = 80) => {
+  const t = String(s).replace(/[\u0000-\u001f\u007f-\u009f]/g, '');
+  return t.length > n ? t.slice(0, n - 1) + '…' : t;
+};
+const paint = (hex, s) => (plain ? clean(s) : `${rgb(hex)}${clean(s)}\x1b[0m`);
 const C = { dim: '#8a857f', text: '#d8d4cf', accent: '#c9a27a', ok: '#8fb894', warn: '#d4a85a', bad: '#d0645a' };
 const SEP = paint(C.dim, ' · ');
 

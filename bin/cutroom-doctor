@@ -1,0 +1,98 @@
+#!/usr/bin/env node
+'use strict';
+// cutroom-doctor: a plain checklist of what is set up on this Mac.
+// It only looks; it never installs or changes anything.
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const lib = path.join(__dirname, '..', 'lib');
+const { file, readJson } = require(path.join(lib, 'home'));
+
+const FAST = process.env.CUTROOM_DOCTOR_FAST === '1';
+const CLAUDE_DIR = process.env.CUTROOM_CLAUDE_DIR || path.join(os.homedir(), '.claude');
+const sh = (cmd, args, timeout = 8000) => {
+  try {
+    const r = spawnSync(cmd, args, { encoding: 'utf8', timeout });
+    return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}`.trim() };
+  } catch {
+    return { ok: false, out: '' };
+  }
+};
+const ver = (s) => (String(s).match(/(\d+)\.(\d+)\.(\d+)/) || []).slice(1).map(Number);
+const atLeast = (v, min) => {
+  for (let i = 0; i < 3; i++) if ((v[i] || 0) !== min[i]) return (v[i] || 0) > min[i];
+  return true;
+};
+
+const rows = [];
+const add = (state, name, detail = '') => rows.push({ state, name, detail });
+// state: ok ✓, missing ✗, warn !, skip –
+
+// Mac
+if (process.platform === 'darwin') {
+  const v = sh('sw_vers', ['-productVersion']).out;
+  add(atLeast(ver(v + '.0'), [15, 0, 0]) ? 'ok' : 'warn', 'macOS', v ? `${v}${atLeast(ver(v + '.0'), [15, 0, 0]) ? '' : ' (Resolve 21 needs macOS 15+)'}` : '');
+} else add('warn', 'macOS', `this is ${process.platform}; cutroom is built for the Mac`);
+
+// Node
+const nodeV = ver(process.versions.node);
+add(atLeast(nodeV, [24, 0, 0]) ? 'ok' : 'warn', 'Node.js', `${process.versions.node}${atLeast(nodeV, [24, 0, 0]) ? '' : ' (24 or newer recommended)'}`);
+
+// Claude Code
+let claudeV = [];
+if (!FAST) {
+  const c = sh('claude', ['--version']);
+  claudeV = ver(c.out);
+  if (!c.ok) add('missing', 'Claude Code', 'not found on PATH');
+  else add(atLeast(claudeV, [2, 1, 287]) ? 'ok' : 'warn', 'Claude Code', `${claudeV.join('.')}${atLeast(claudeV, [2, 1, 287]) ? '' : ' (2.1.287+ needed for the activity band; run `claude update`)'}`);
+} else add('skip', 'Claude Code', 'skipped');
+
+// Homebrew
+const brew = sh('brew', ['--version']);
+add(brew.ok ? 'ok' : 'missing', 'Homebrew', brew.ok ? brew.out.split('\n')[0] : 'not installed. Open https://brew.sh and paste the install line shown there into Terminal yourself (it asks for your Mac password).');
+
+// ffmpeg
+const ff = sh('ffmpeg', ['-hide_banner', '-version']);
+add(ff.ok ? 'ok' : 'missing', 'ffmpeg', ff.ok ? (ff.out.match(/ffmpeg version (\S+)/) || [])[1] || 'installed' : 'not installed (ask Claude: "install ffmpeg with Homebrew")');
+
+// MakeMyClip skill
+const skillDirs = [path.join(CLAUDE_DIR, 'skills'), path.join(os.homedir(), '.agents', 'skills')];
+const mmc = skillDirs.some((d) => {
+  try {
+    return fs.readdirSync(d).some((n) => /makemyclip|^editor$/i.test(n));
+  } catch {
+    return false;
+  }
+});
+add(mmc ? 'ok' : 'warn', 'MakeMyClip editor', mmc ? 'installed' : 'not found in your skills folders (guide step 3)');
+
+// Resolve
+const app = '/Applications/DaVinci Resolve/DaVinci Resolve.app';
+const hasResolve = fs.existsSync(app);
+const running = sh('pgrep', ['-x', process.env.CUTROOM_RESOLVE_PROC || 'Resolve']).ok;
+add(hasResolve ? 'ok' : 'missing', 'DaVinci Resolve', hasResolve ? (running ? 'installed, open now' : 'installed, not open') : 'not found in /Applications');
+add('skip', 'Resolve scripting', 'check by hand: Preferences → System → General → External scripting using: Local');
+
+// MCP connections and plugins (slow: they start servers)
+if (!FAST) {
+  const mcp = sh('claude', ['mcp', 'list'], 30000).out;
+  add(/resolve/i.test(mcp) ? 'ok' : 'warn', 'Resolve connection', /resolve/i.test(mcp) ? 'listed in claude mcp list' : 'not connected (Resolve: File → Setup AI Assistants, then restart Claude)');
+  add(/higgsfield/i.test(mcp) ? 'ok' : 'warn', 'Higgsfield', /higgsfield/i.test(mcp) ? 'connected' : 'not connected (claude.ai → Settings → Connectors)');
+  const plugins = sh('claude', ['plugin', 'list'], 15000).out;
+  const anim = ['hyperframes', 'remotion'].filter((p) => plugins.toLowerCase().includes(p));
+  add(anim.length ? 'ok' : 'warn', 'Animation tools', anim.length ? anim.join(', ') : 'HyperFrames / Remotion not installed (Tonight page, step 4)');
+} else {
+  add('skip', 'Resolve connection', 'skipped');
+  add('skip', 'Higgsfield', 'skipped');
+}
+
+// cutroom itself
+const cfg = readJson(file('config.json'), null);
+add(cfg && cfg.projectRoots && cfg.projectRoots.length ? 'ok' : 'warn', 'cutroom folders', cfg && cfg.projectRoots && cfg.projectRoots.length ? cfg.projectRoots.join(', ') : 'not set yet (/cutroom-setup asks)');
+const settings = readJson(path.join(CLAUDE_DIR, 'settings.json'), {}) || {};
+const applied = settings.statusLine && /cutroom/.test(String(settings.statusLine.command || ''));
+add(applied ? 'ok' : 'warn', 'cutroom look', applied ? 'status line and theme on' : 'not applied yet (/cutroom-setup)');
+
+const ICON = { ok: '✓', missing: '✗', warn: '!', skip: '–' };
+for (const r of rows) console.log(`${ICON[r.state]} ${r.name}${r.detail ? ': ' + r.detail : ''}`);

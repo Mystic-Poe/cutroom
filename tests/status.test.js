@@ -89,3 +89,11 @@ test('fast enough for a status line', () => {
   const ms = Number(process.hrtime.bigint() - t) / 1e6;
   assert.ok(ms < 250, `took ${ms}ms`);
 });
+
+test('control characters never reach the terminal (security review)', () => {
+  const home = tmpdir();
+  const evil = '/x/v1\u001b]0;pwned\u0007\u001b[2J';
+  fs.writeFileSync(path.join(home, 'jobs.json'), JSON.stringify({ jobs: [{ id: 'a', label: 'Job\u001b[31m', cwd: evil, status: 'running', startedAt: Date.now(), updatedAt: Date.now() }] }));
+  const r = run('cutroom-status', [], { env: env(home), input: JSON.stringify({ workspace: { current_dir: evil } }) });
+  assert.doesNotMatch(r.out, /[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/);
+});

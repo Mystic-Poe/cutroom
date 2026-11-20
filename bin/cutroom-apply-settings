@@ -1,0 +1,102 @@
+#!/usr/bin/env node
+'use strict';
+// cutroom-apply-settings --diff          show what /cutroom-setup would change
+// cutroom-apply-settings --write         apply it (keeps a backup of settings.json)
+// cutroom-apply-settings --config '<json>'  write ~/.cutroom/config.json
+//
+// Changes only: statusLine, theme, spinnerTipsEnabled. Everything else in
+// settings.json is left exactly as it was.
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const lib = path.join(__dirname, '..', 'lib');
+const { cutroomHome, file, readJson, writeJsonAtomic } = require(path.join(lib, 'home'));
+
+const ROOT = path.resolve(__dirname, '..');
+const CLAUDE_DIR = process.env.CUTROOM_CLAUDE_DIR || path.join(os.homedir(), '.claude');
+const SETTINGS = path.join(CLAUDE_DIR, 'settings.json');
+const LAUNCHER = path.join(cutroomHome(), 'statusline.sh');
+
+function wanted() {
+  return {
+    statusLine: { type: 'command', command: LAUNCHER, padding: 0, refreshInterval: 5 },
+    theme: 'custom:cutroom',
+    spinnerTipsEnabled: false,
+  };
+}
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+function changes(current) {
+  const w = wanted();
+  return Object.keys(w).filter((k) => !same(current[k], w[k])).map((k) => ({ key: k, from: current[k], to: w[k] }));
+}
+
+function launcherText() {
+  // Finds the newest installed cutroom, so plugin updates never break the status line.
+  return `#!/bin/sh
+# cutroom status line launcher (written by /cutroom-setup).
+DIR=""
+for d in $(ls -dt "${CLAUDE_DIR}"/plugins/cache/*/cutroom/*/ 2>/dev/null); do
+  if [ -f "$d/bin/cutroom-status" ]; then DIR="$d"; break; fi
+done
+[ -z "$DIR" ] && DIR="${ROOT}"
+if command -v node >/dev/null 2>&1 && [ -f "$DIR/bin/cutroom-status" ]; then
+  exec node "$DIR/bin/cutroom-status"
+fi
+cat >/dev/null
+echo "▸ cutroom (run /cutroom-setup)"
+`;
+}
+
+const show = (v) => (v === undefined ? '(not set)' : JSON.stringify(v));
+
+function main() {
+  const args = process.argv.slice(2);
+  if (args[0] === '--config') {
+    const given = JSON.parse(args[1] || '{}');
+    const cfg = {
+      projectRoots: Array.isArray(given.projectRoots) ? given.projectRoots : [],
+      mediaRoots: Array.isArray(given.mediaRoots) ? given.mediaRoots : [],
+      lockedFolders: Array.isArray(given.lockedFolders) && given.lockedFolders.length ? given.lockedFolders : ['raw'],
+    };
+    writeJsonAtomic(file('config.json'), cfg);
+    console.log(`Saved your folders to ${file('config.json').replace(os.homedir(), '~')}.`);
+    return;
+  }
+  const current = readJson(SETTINGS, {}) || {};
+  const diff = changes(current);
+  if (args.includes('--diff') || !args.includes('--write')) {
+    if (!diff.length) {
+      console.log('Claude Code settings already match cutroom. Nothing to change.');
+      return;
+    }
+    console.log(`These settings in ${SETTINGS.replace(os.homedir(), '~')} would change:`);
+    for (const c of diff) console.log(`  ${c.key}: ${show(c.from)}  →  ${show(c.to)}`);
+    console.log('Everything else stays as it is. A backup is kept.');
+    return;
+  }
+  // --write
+  fs.mkdirSync(cutroomHome(), { recursive: true });
+  fs.writeFileSync(LAUNCHER, launcherText(), { mode: 0o755 });
+  fs.mkdirSync(path.join(CLAUDE_DIR, 'themes'), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, 'themes', 'cutroom.json'), path.join(CLAUDE_DIR, 'themes', 'cutroom.json'));
+  if (!diff.length) {
+    console.log('Claude Code settings already match cutroom. Refreshed the status line launcher and theme.');
+    return;
+  }
+  if (fs.existsSync(SETTINGS)) {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    fs.copyFileSync(SETTINGS, `${SETTINGS}.cutroom-backup-${stamp}`);
+  }
+  const next = { ...current, ...wanted() };
+  writeJsonAtomic(SETTINGS, next);
+  console.log(`Updated ${diff.map((c) => c.key).join(', ')}. Your old settings were backed up next to settings.json. Restart Claude to see the new look.`);
+}
+
+try {
+  main();
+} catch (err) {
+  console.error(`cutroom couldn't update settings: ${err.message}`);
+  process.exit(1);
+}
