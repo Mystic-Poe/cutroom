@@ -186,3 +186,38 @@ test('shim passes a real decision through', () => {
   const r = hook(SHIM, JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'rm x' }, cwd: V1 }), { CLAUDE_PLUGIN_ROOT: ROOT });
   assert.equal(JSON.parse(r.out).hookSpecificOutput.permissionDecision, 'deny');
 });
+
+// ---- security review regressions ----
+const MORE = [
+  ['echo x>~/.claude/settings.json', 'deny'],
+  ['echo x>>~/.zshrc', 'deny'],
+  ['ls 2>/dev/null', null],
+  ["$'\\x72m' A.mov", 'deny'],
+  ["$'\\162m' A.mov", 'deny'],
+  ["r''m A.mov", 'deny'],
+  ['"r"m A.mov', 'deny'],
+  ['$CMD A.mov', 'ask'],
+  ['${X}m A.mov', 'ask'],
+  ['$(echo rm) A.mov', 'ask'],
+];
+for (const [cmd, want] of MORE) {
+  test(`Bash (review): ${cmd} → ${want}`, () => {
+    assert.equal(verdict('Bash', { command: cmd }), want);
+  });
+}
+
+test('protected settings are found through symlinks and case (macOS)', () => {
+  const d = tmpdir();
+  const link = path.join(d, 'cfg');
+  fs.mkdirSync(path.join(HOME, '.claude'), { recursive: true });
+  fs.symlinkSync(path.join(HOME, '.claude'), link);
+  const { isProtectedPath } = require('../lib/guard');
+  assert.equal(isProtectedPath(path.join(link, 'settings.json')), true);
+  process.env.CUTROOM_CASEFOLD = '1';
+  try {
+    assert.equal(isProtectedPath(path.join(HOME, '.Claude', 'Settings.json')), true);
+    assert.equal(isProtectedPath(path.join(HOME, '.ZSHRC')), true);
+  } finally {
+    delete process.env.CUTROOM_CASEFOLD;
+  }
+});

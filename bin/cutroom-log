@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+'use strict';
+// PostToolUse / PostToolUseFailure hook: append one line to the activity log.
+// Never fails the hook, never prints to the transcript.
+const path = require('node:path');
+let input = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => (input += c));
+process.stdin.on('end', () => {
+  try {
+    require(path.join(__dirname, '..', 'lib', 'activity')).record(JSON.parse(input));
+  } catch { /* logging must never get in the way */ }
+  process.exit(0);
+});

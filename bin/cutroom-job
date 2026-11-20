@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+'use strict';
+// cutroom-job start <id> "<label>" [--total N]
+// cutroom-job progress <id> <done> [--current <file>]
+// cutroom-job done <id>
+// cutroom-job fail <id> "<reason>"
+const path = require('node:path');
+const jobs = require(path.join(__dirname, '..', 'lib', 'jobs'));
+
+const argv = process.argv.slice(2);
+const opt = (name) => {
+  const i = argv.indexOf(name);
+  if (i === -1) return null;
+  const v = argv[i + 1];
+  argv.splice(i, 2);
+  return v;
+};
+const total = opt('--total');
+const current = opt('--current');
+const [verb, id, arg] = argv;
+
+try {
+  if (!verb || !id) throw new Error('Usage: cutroom-job start|progress|done|fail <id> ...');
+  if (verb === 'start') jobs.start(id, arg || id, { total: total ? Number(total) : null });
+  else if (verb === 'progress') jobs.progress(id, Number(arg || 0), { current });
+  else if (verb === 'done') jobs.finish(id, 'done');
+  else if (verb === 'fail') jobs.finish(id, 'failed', { reason: arg || null });
+  else throw new Error(`Unknown action "${verb}". Use start, progress, done or fail.`);
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
