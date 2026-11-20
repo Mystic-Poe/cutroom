@@ -53,3 +53,12 @@ test('entries older than 30 days are pruned', () => {
   assert.equal(l.length, 1);
   assert.notEqual(l[0].summary, 'old');
 });
+
+test('secrets are hidden and the log is private (security review)', () => {
+  const home = tmpdir();
+  const cmd = 'curl -H "Authorization: Bearer abcdefghijklmnop" "https://api.x.com/v1?key=SECRET123" && HIGGS_API_KEY=zzz123 tool --token t0ps3cret https://u:pw@host/p';
+  run('cutroom-log', [], { env: { CUTROOM_HOME: home }, input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: cmd }, cwd: '/x' }) });
+  const line = fs.readFileSync(path.join(home, 'activity.jsonl'), 'utf8');
+  for (const s of ['abcdefghijklmnop', 'SECRET123', 'zzz123', 't0ps3cret', 'u:pw@']) assert.ok(!line.includes(s), `leaked ${s}: ${line}`);
+  assert.equal(fs.statSync(path.join(home, 'activity.jsonl')).mode & 0o777, 0o600);
+});

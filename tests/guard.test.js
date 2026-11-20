@@ -230,3 +230,27 @@ test('guard and cutroom-mv read arguments the same way (security review)', () =>
   assert.equal(verdict('Bash', { command: 'cutroom-trash -f a.mov' }), 'deny');
   assert.equal(verdict('Bash', { command: 'cutroom-trash -- a.mov' }), 'ask');
 });
+
+test('unreadable command name does not downgrade a deny (security review)', () => {
+  assert.equal(verdict('Bash', { command: '$X > ~/.claude/settings.json' }), 'deny');
+  assert.equal(verdict('Bash', { command: '$X ~/.zshrc' }), 'deny');
+  assert.equal(verdict('Bash', { command: '$X | sh' }), 'ask');
+});
+
+test('full ANSI-C decoding (security review)', () => {
+  for (const c of ["$'\\u0072m' A.mov", "$'\\U00000072m' A.mov", "$'\\x72\\x6d' A.mov"]) assert.equal(verdict('Bash', { command: c }), 'deny', c);
+  assert.equal(verdict('Bash', { command: "$'\\q'm A.mov" }), 'ask');
+});
+
+test('symlink named like settings, pointing elsewhere, is still protected', () => {
+  const { isProtectedPath } = require('../lib/guard');
+  const claudeDir = path.join(HOME, '.claude');
+  const target = path.join(tmpdir(), 'elsewhere.json');
+  fs.writeFileSync(target, '{}');
+  const d = tmpdir();
+  const link = path.join(d, '.claude');
+  fs.mkdirSync(link);
+  fs.symlinkSync(target, path.join(link, 'settings.json'));
+  assert.equal(isProtectedPath(path.join(link, 'settings.json')), true);
+  assert.equal(isProtectedPath(path.join(claudeDir, 'settings.json')), true);
+});
