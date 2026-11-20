@@ -11,8 +11,11 @@ const isMac = process.env.CUTROOM_FORCE_MAC ? process.env.CUTROOM_FORCE_MAC === 
 const OSA = process.env.CUTROOM_OSASCRIPT || 'osascript';
 const STATE = file('text.json');
 
-function osa(script) {
-  const r = spawnSync(OSA, ['-e', script], { encoding: 'utf8', timeout: 15000 });
+// Sizes are only ever whole numbers in a sane range.
+const validSize = (n) => Number.isInteger(n) && n >= 6 && n <= 72;
+
+function osa(script, args = []) {
+  const r = spawnSync(OSA, ['-e', script, ...args.map(String)], { encoding: 'utf8', timeout: 15000 });
   if (r.status !== 0) {
     const why = (r.stderr || '').trim();
     if (/not allowed|-1743|not authori[sz]ed/i.test(why)) throw new Error('macOS blocked it. Open System Settings → Privacy & Security → Automation, allow Terminal to control "Terminal", then try again.');
@@ -21,20 +24,29 @@ function osa(script) {
   return (r.stdout || '').trim();
 }
 
-const current = () => Number(osa('tell application "Terminal" to get font size of default settings'));
+function current() {
+  const n = Math.round(Number(osa('tell application "Terminal" to get font size of default settings')));
+  return validSize(n) ? n : null;
+}
 
-function apply(size) {
-  // the default profile (all new windows) and every open tab
-  osa(`tell application "Terminal"
-set font size of default settings to ${size}
+// The size goes to AppleScript as an argument, never pasted into the script text.
+const APPLY = `on run argv
+set n to (item 1 of argv) as integer
+tell application "Terminal"
+set font size of default settings to n
 repeat with w in windows
 repeat with t in tabs of w
 try
-set font size of current settings of t to ${size}
+set font size of current settings of t to n
 end try
 end repeat
 end repeat
-end tell`);
+end tell
+end run`;
+
+function apply(size) {
+  if (!validSize(size)) throw new Error(`${size} is not a usable text size.`);
+  osa(APPLY, [size]);
 }
 
 function main() {
@@ -49,11 +61,15 @@ function main() {
   }
   if (arg === 'reset') {
     const s = readJson(STATE, null);
+    if (s && s.previous != null && !validSize(Number(s.previous))) {
+      console.error("cutroom's saved text size looks wrong, so it wasn't used. Pick a size instead, like: cutroom-text 12");
+      return 2;
+    }
     if (!s || !s.previous) {
       console.log('cutroom never changed the text size, so there is nothing to put back.');
       return 0;
     }
-    apply(s.previous);
+    apply(Number(s.previous));
     writeJsonAtomic(STATE, { previous: null, size: s.previous });
     console.log(`Text size is back to ${s.previous} pt.`);
     return 0;
@@ -64,10 +80,10 @@ function main() {
   }
   const size = Number(arg);
   const before = readJson(STATE, null);
-  const previous = before && before.previous ? before.previous : current();
+  const previous = before && validSize(Number(before.previous)) ? Number(before.previous) : current();
   apply(size);
   writeJsonAtomic(STATE, { previous, size });
-  console.log(`Terminal text is now ${size} pt (it was ${previous}). New windows keep it. Say "put the text size back" to undo.`);
+  console.log(`Terminal text is now ${size} pt${previous ? ` (it was ${previous})` : ''}. New windows keep it. Say "put the text size back" to undo.`);
   return 0;
 }
 

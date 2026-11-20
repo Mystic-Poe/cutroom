@@ -19,7 +19,7 @@ test('sets a bigger size and remembers the old one', () => {
   const r = run('cutroom-text', ['18'], { env: envFor(home, bin) });
   assert.equal(r.code, 0, r.err);
   assert.match(r.out, /18/);
-  assert.match(fs.readFileSync(log, 'utf8'), /set font size of default settings to 18/);
+  assert.match(fs.readFileSync(log, 'utf8'), /on run argv[\s\S]*set font size of default settings to n[\s\S]* 18\n/);
   assert.equal(JSON.parse(fs.readFileSync(path.join(home, 'text.json'), 'utf8')).previous, 11);
 });
 
@@ -39,7 +39,7 @@ test('reset puts the original size back', () => {
   const { bin: bin2, log: log2 } = fakeOsascript(tmpdir(), '18');
   const r = run('cutroom-text', ['reset'], { env: envFor(home, bin2) });
   assert.equal(r.code, 0, r.err);
-  assert.match(fs.readFileSync(log2, 'utf8'), /to 11/);
+  assert.match(fs.readFileSync(log2, 'utf8'), / 11\n/);
 });
 
 test('refuses silly sizes and non-numbers', () => {
@@ -52,4 +52,22 @@ test('off the Mac it explains instead of failing', () => {
   const r = run('cutroom-text', ['18'], { env: { CUTROOM_HOME: tmpdir(), CUTROOM_FORCE_MAC: '0' } });
   assert.equal(r.code, 0);
   assert.match(r.out, /Mac's Terminal/);
+});
+
+test('a tampered saved size is never sent to AppleScript (security review)', () => {
+  const home = tmpdir();
+  const { bin, log } = fakeOsascript(tmpdir());
+  fs.writeFileSync(path.join(home, 'text.json'), JSON.stringify({ previous: '12\ndo shell script "touch /tmp/pwned"' }));
+  const r = run('cutroom-text', ['reset'], { env: envFor(home, bin) });
+  assert.equal(r.code, 2);
+  assert.equal(fs.existsSync(log), false);
+});
+
+test('the size is passed as an argument, not pasted into the script', () => {
+  const home = tmpdir();
+  const { bin, log } = fakeOsascript(tmpdir());
+  run('cutroom-text', ['16'], { env: envFor(home, bin) });
+  const calls = fs.readFileSync(log, 'utf8');
+  assert.doesNotMatch(calls, /to 16/);
+  assert.match(calls, /item 1 of argv/);
 });
