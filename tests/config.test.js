@@ -63,3 +63,30 @@ test('readJson / writeJsonAtomic / appendJsonl', () => {
   appendJsonl(l, { x: 2 });
   assert.equal(fs.readFileSync(l, 'utf8').trim().split('\n').length, 2);
 });
+
+test('case-insensitive file systems: Raw/ is locked too', () => {
+  const { isLocked, isInside } = require('../lib/config');
+  process.env.CUTROOM_CASEFOLD = '1';
+  try {
+    const cfg = { projectRoots: ['/E/AI-edits'], mediaRoots: [], lockedFolders: ['raw'] };
+    assert.equal(isLocked('/E/AI-edits/v1/Raw/A.mov', cfg), true);
+    assert.equal(isLocked('/e/ai-edits/v1/RAW/A.mov', cfg), true);
+    assert.equal(isInside('/e/ai-edits/v1', ['/E/AI-edits']), true);
+  } finally {
+    delete process.env.CUTROOM_CASEFOLD;
+  }
+});
+
+test('symlinks are resolved before checking', () => {
+  const { isLocked, isInside } = require('../lib/config');
+  const d = tmpdir();
+  const proj = path.join(d, 'AI-edits');
+  fs.mkdirSync(path.join(proj, 'v1', 'raw'), { recursive: true });
+  fs.writeFileSync(path.join(proj, 'v1', 'raw', 'A.mov'), 'x');
+  // a link outside the project that points into raw/
+  const link = path.join(d, 'sneaky');
+  fs.symlinkSync(path.join(proj, 'v1', 'raw'), link);
+  const cfg = { projectRoots: [proj], mediaRoots: [], lockedFolders: ['raw'] };
+  assert.equal(isLocked(path.join(link, 'A.mov'), cfg), true);
+  assert.equal(isInside(path.join(link, 'new.mov'), [proj]), true);
+});

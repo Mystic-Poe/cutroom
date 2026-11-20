@@ -1,0 +1,40 @@
+#!/usr/bin/env node
+'use strict';
+// PreToolUse hook: reads the hook input on stdin, prints a decision.
+// Fails closed: any error produces an "ask", never a silent allow.
+const path = require('node:path');
+const lib = path.join(__dirname, '..', 'lib');
+
+function emit(decision, reason) {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: decision, permissionDecisionReason: reason },
+  }) + '\n');
+}
+
+let input = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => (input += c));
+process.stdin.on('end', () => {
+  try {
+    const data = JSON.parse(input);
+    const { decide } = require(path.join(lib, 'guard'));
+    const { loadConfig } = require(path.join(lib, 'config'));
+    const r = decide(data, loadConfig());
+    if (!r) return;
+    emit(r.decision, r.reason);
+    try {
+      const { file, appendJsonl } = require(path.join(lib, 'home'));
+      appendJsonl(file('activity.jsonl'), {
+        ts: new Date().toISOString(),
+        session: data.session_id || null,
+        cwd: data.cwd || null,
+        tool: data.tool_name,
+        summary: `cutroom guard ${r.decision === 'deny' ? 'blocked' : 'asked'}: ${r.reason}`.slice(0, 300),
+        ok: false,
+        guard: r.decision,
+      });
+    } catch { /* logging must never break the guard */ }
+  } catch (err) {
+    emit('ask', `cutroom's safety check hit a problem (${String(err && err.message || err).slice(0, 80)}), so it is asking you instead. OK to run this?`);
+  }
+});
