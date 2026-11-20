@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+'use strict';
+// cutroom-mv <source...> <destination>
+// Moves or renames. Never overwrites. Every move is logged so it can be undone.
+const path = require('node:path');
+const { move, describe } = require(path.join(__dirname, '..', 'lib', 'moves'));
+const args = process.argv.slice(2).filter((a) => a !== '--');
+if (args.length < 2) {
+  console.error('Usage: cutroom-mv <source...> <destination>');
+  process.exit(2);
+}
+try {
+  const done = move(args.slice(0, -1), args.at(-1));
+  console.log(describe(done, 'Moved') + ' Say "undo that" to put it back.');
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}

@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+'use strict';
+// cutroom-undo-move [n]   Reverse the last n batches of moves or trashes (default 1).
+const path = require('node:path');
+const { undo, describe } = require(path.join(__dirname, '..', 'lib', 'moves'));
+const n = Math.max(1, parseInt(process.argv[2] || '1', 10) || 1);
+try {
+  const restored = undo(n).map((e) => ({ from: e.to, to: e.from }));
+  console.log(describe(restored, 'Put back'));
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}

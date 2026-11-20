@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+'use strict';
+// cutroom-trash <paths...>
+// Moves files to the macOS Trash (via Finder, so "Put Back" works). Logged for undo.
+const path = require('node:path');
+const { trash, describe } = require(path.join(__dirname, '..', 'lib', 'moves'));
+const args = process.argv.slice(2).filter((a) => a !== '--');
+if (!args.length) {
+  console.error('Usage: cutroom-trash <paths...>');
+  process.exit(2);
+}
+try {
+  const done = trash(args);
+  console.log(describe(done, 'Moved to the Trash:') + ' Say "undo that" to bring it back.');
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
