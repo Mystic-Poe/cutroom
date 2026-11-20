@@ -254,3 +254,12 @@ test('symlink named like settings, pointing elsewhere, is still protected', () =
   assert.equal(isProtectedPath(path.join(link, 'settings.json')), true);
   assert.equal(isProtectedPath(path.join(claudeDir, 'settings.json')), true);
 });
+
+test('NUL inside $\'...\' is cut the way bash cuts it (security review)', () => {
+  assert.equal(verdict('Bash', { command: "echo x > $'~/.claude/settings.json\\0junk'" }), 'deny');
+  assert.equal(verdict('Bash', { command: "echo x > $'~/.claude/settings.json\\x00junk'" }), 'deny');
+  // bash reads $'r\x00x'm as rm
+  assert.equal(verdict('Bash', { command: "$'r\\x00x'm A.mov" }), 'deny');
+  assert.equal(verdict('Bash', { command: "$'\\q'm A.mov" }), 'ask');
+  assert.equal(verdict('Bash', { command: "cat $'a\\x01b'" }), 'ask');
+});
