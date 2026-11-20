@@ -62,3 +62,16 @@ test('secrets are hidden and the log is private (security review)', () => {
   for (const s of ['abcdefghijklmnop', 'SECRET123', 'zzz123', 't0ps3cret', 'u:pw@']) assert.ok(!line.includes(s), `leaked ${s}: ${line}`);
   assert.equal(fs.statSync(path.join(home, 'activity.jsonl')).mode & 0o777, 0o600);
 });
+
+test('log stays private after pruning, and old files are repaired (security review)', () => {
+  const home = tmpdir();
+  const p = path.join(home, 'activity.jsonl');
+  fs.writeFileSync(p, JSON.stringify({ ts: '2020-01-01T00:00:00.000Z', tool: 'Bash', summary: 'old', ok: true }) + '\n', { mode: 0o644 });
+  run('cutroom-log', [], { env: { CUTROOM_HOME: home }, input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'ls' }, cwd: '/x' }) });
+  assert.equal(fs.statSync(p).mode & 0o777, 0o600);
+  const { writeJsonAtomic, appendJsonl } = require('../lib/home');
+  writeJsonAtomic(path.join(home, 'j.json'), { a: 1 });
+  appendJsonl(path.join(home, 'm.log'), { a: 1 });
+  assert.equal(fs.statSync(path.join(home, 'j.json')).mode & 0o777, 0o600);
+  assert.equal(fs.statSync(path.join(home, 'm.log')).mode & 0o777, 0o600);
+});
