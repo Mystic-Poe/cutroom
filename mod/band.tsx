@@ -5,6 +5,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { BandJob } from '../types'
+import { ACTIONS } from './actions'
 
 const job = atom({ plugin: 'cutroom', key: 'job' } as const, null)
 
@@ -81,16 +82,41 @@ export const registerBand = (on: Parameters<Register>[0]) => {
     return result
   })
 
+  // Line 1: what's running now (only while something is). Line 2: the quick
+  // actions, pressed with 1–4 on an empty prompt.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
     const current = await read($, job)
-    if (e.props.hasSurvey || !current) return next(e)
-    const { Box, Text } = $.ui.resolve(e)
-    const color = current.tone === 'failed' ? 'text-danger' : current.tone === 'done' ? 'text-success' : 'text-accent'
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const color = current?.tone === 'failed' ? 'text-danger' : current?.tone === 'done' ? 'text-success' : 'text-accent'
     return (
-      <Box>
-        <Text color={color} wrap="truncate">
-          {current.text}
-        </Text>
+      <Box flexDirection="column">
+        {current ? (
+          <Text color={color} wrap="truncate">
+            {current.text}
+          </Text>
+        ) : null}
+        <Box flexDirection="row" gap={2}>
+          {ACTIONS.map(a => (
+            <Button
+              key={`cutroom-action-${a.key}`}
+              label={a.label}
+              hotkey={a.key}
+              plain
+              dimColor={!!e.props.isWorking}
+              onPress={async () => {
+                // never replace a draft he's typing (the band can hold the keys
+                // after a click or ctrl+x tab, with text still in the prompt)
+                const draft = await $.prompt.read()
+                if (draft.text.trim()) {
+                  await $.ui.toast(`Your prompt already has text. Clear it, then press ${a.key} again.`)
+                  return
+                }
+                await $.prompt.fill({ text: a.text })
+              }}
+            />
+          ))}
+        </Box>
       </Box>
     )
   })

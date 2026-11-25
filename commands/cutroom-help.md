@@ -26,6 +26,10 @@ Show the editor the guide below, as is (you may shorten nothing, add nothing). T
 - "Make a lower-third for 'Jane Doe, Director' at the footage's frame rate, transparent."
 - "Generate a 5-second Higgsfield shot of a city at dusk. Quote me the credits first."
 
+**Quick actions**
+Type a number on an empty prompt and the request appears in the box. Change it if you like, then press Enter.
+- **1** Rough cut · **2** Find clips · **3** Render · **4** What happened?
+
 **Safety, built in**
 - **Deleting** goes to the Trash and asks you first.
 - **Originals in `raw/`** are protected: nothing there is overwritten, and moving one asks first.
