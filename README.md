@@ -136,7 +136,10 @@ Your previous settings are in `~/.claude/settings.json.cutroom-backup-*` if you 
 ## For developers
 
 - Plain Node (no dependencies) in `bin/` and `lib/`.
-- One mod (`mod/index.tsx`): the band above the prompt (`band.tsx`) and the plain-English tool rows (`rows.tsx`, wording in `plain.ts`).
+- One mod (`mod/index.tsx`):
+  - the Editor voice in every session (`voice.ts`). It adds `output-styles/editor.md` to the system prompt, because plugin output styles don't reliably load, and asks for a plain `description` on every Bash command;
+  - the band above the prompt (`band.tsx`);
+  - the plain-English tool rows (`rows.tsx`, wording in `plain.ts`).
 - Markdown commands in `commands/`, plus the Editor output style.
 - **Tests:**
   - `npm test` (node:test);
