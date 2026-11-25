@@ -90,6 +90,8 @@ Update cutroom: run claude plugin update cutroom@cutroom, then tell me to restar
 
 ## Everyday use
 
+The whole workflow, stage by stage with examples: [docs/WORKFLOW.md](docs/WORKFLOW.md).
+
 | You type | What happens |
 |---|---|
 | anything, in plain English | Claude does it, and narrates |
@@ -108,9 +110,9 @@ Update cutroom: run claude plugin update cutroom@cutroom, then tell me to restar
 | `rm` and other permanent deletes | moving files to the Trash | reading and checking footage |
 | overwriting footage or project files | moving or renaming files already in `raw/` | making new files: proxies, transcripts, renders, timelines |
 | admin (`sudo`) and disk erase/format | spending Higgsfield credits | moving and renaming outside `raw/` (undoable) |
-| running downloaded scripts | sending files off your Mac | |
+| running downloaded scripts | sending files off your Mac | Resolve chores through its built-in connection: markers, bins, renders, titles, looks, new timelines |
 | changing Claude/shell settings outside `/cutroom-setup` | installing new software | |
-| | quitting Resolve, running custom Resolve scripts | |
+| | quitting Resolve; Resolve scripts that delete clips, timelines or projects, or change clip edges; Resolve scripts with full access to your Mac | |
 | | anything outside your editing folders | |
 
 **These rails are a safety net, not a lock.**

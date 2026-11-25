@@ -94,3 +94,11 @@ test('the row draws one plain line on every surface, and ctrl+o shows the real t
     await full.unmount()
   }
 })
+
+test("Resolve rows read the script's plain first line", () => {
+  expect(sentence('mcp__davinci-resolve__run_script', { script: '# add a marker at every speaker change\ntl = project.GetCurrentTimeline()' }))
+    .toBe('Resolve: Add a marker at every speaker change')
+  expect(sentence('mcp__davinci-resolve__run_script', { script: 'tl = project.GetCurrentTimeline()' })).toBe('Resolve: ran a script')
+  expect(sentence('mcp__davinci-resolve__search_scripting_api', { pattern: 'Marker' })).toBe('Resolve: looked up how to do it')
+  expect(sentence('mcp__davinci-resolve__get_resolve_status', {})).toBe('Resolve: checked it’s open')
+})

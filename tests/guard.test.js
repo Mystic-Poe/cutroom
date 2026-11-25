@@ -129,8 +129,10 @@ const MCP = [
   ['mcp__claude_ai_Higgsfield__publish_project', 'ask'],
   ['mcp__claude_ai_Higgsfield__balance', null],
   ['mcp__claude_ai_Higgsfield__estimate_video_cost', null],
-  ['mcp__davinci-resolve__run_script', 'ask'],
+  ['mcp__davinci-resolve__run_script', null],
   ['mcp__davinci-resolve__run_script_unsafe', 'ask'],
+  ['mcp__davinci-resolve__delete_lut', 'ask'],
+  ['mcp__davinci-resolve__generate_lut', null],
   ['mcp__davinci-resolve__get_timeline', null],
   ['mcp__claude_ai_Gmail__search_threads', null],
 ];
@@ -139,6 +141,27 @@ for (const [tool, want] of MCP) {
     assert.equal(verdict(tool, {}), want);
   });
 }
+
+const RESOLVE_SCRIPTS = [
+  ['# Add a marker at every speaker change\ntl = project.GetCurrentTimeline()\ntl.AddMarker(100, "Blue", "Speaker 2", "", 1)', null],
+  ['# Duplicate the timeline to work on\nproject.GetCurrentTimeline().DuplicateTimeline("v2 (Claude)")', null],
+  ['# Queue YouTube and vertical renders\nproject.AddRenderJob()\nproject.StartRendering()', null],
+  ['# Remove the bad takes\ntl.DeleteClips([a, b])', 'ask'],
+  ['mp.DeleteTimelines([tl])', 'ask'],
+  ['pm.DeleteProject("old")', 'ask'],
+  ['resolve.Quit()', 'ask'],
+  ['item.SetLeftOffset(12)', 'ask'],
+]
+for (const [script, want] of RESOLVE_SCRIPTS) {
+  test(`Resolve run_script: ${script.split('\n').pop()} → ${want}`, () => {
+    assert.equal(verdict('mcp__davinci-resolve__run_script', { script }), want);
+  });
+}
+
+test('a destructive Resolve script names what it is about to do', () => {
+  const d = decide({ tool_name: 'mcp__davinci-resolve__run_script', tool_input: { script: '# Remove the bad takes\ntl.DeleteClips([a])' }, cwd: V1 }, CFG);
+  assert.match(d.reason, /deletes something from the Resolve project \("Remove the bad takes"\)/);
+});
 
 test('no config: outside-folder checks are skipped, safety denies remain', () => {
   const cfg = { projectRoots: [], mediaRoots: [], lockedFolders: ['raw'] };
