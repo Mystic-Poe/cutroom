@@ -13,7 +13,11 @@ cutroom keeps all the power of Claude Code in the terminal. It also makes the te
   - a muted colour theme;
   - editing words on the spinner (*Cutting… Conforming… Rendering…*);
   - a status line that shows your video folder, whether Resolve is open, free drive space, your Claude usage and your Higgsfield credits;
-  - one line above the prompt that shows what's running right now.
+  - above the prompt: what's running right now, and four quick actions (**1** Rough cut, **2** Find clips, **3** Render, **4** What happened?). Type the number on an empty prompt and the request appears in the box, ready to change or send with Enter;
+  - a cutroom welcome card in place of the Claude Code logo, with your video folder and example requests;
+  - Claude's questions drawn as **Your call** cards;
+  - less chrome: no turn timer (ctrl+o still shows it), no dim notices under the logo, no mode labels by the prompt.
+- **Works in every session**, not only inside cutroom's commands: the plain-English voice is added by the mod, so it doesn't depend on Claude Code loading the output style.
 - **An editing partner, not a programmer**
   - Claude explains in plain English what it's doing and why, and teaches as it goes.
   - It stops only at creative decisions: which take, pacing, the cut list.
@@ -93,6 +97,7 @@ Update cutroom: run claude plugin update cutroom@cutroom, then tell me to restar
 | `/what-happened` | a plain-English replay of what Claude did here; add what looks wrong, e.g. `/what-happened clips are red in Resolve` |
 | `/cutroom-help` | examples of what to ask for |
 | `/cutroom-setup check` | health check |
+| 1, 2, 3 or 4 on an empty prompt | puts a ready-made request in the box: rough cut, find clips, render, what happened |
 | ctrl+o | show or hide the full technical details |
 | "make the text bigger" | changes the Terminal text size |
 
@@ -138,7 +143,8 @@ Your previous settings are in `~/.claude/settings.json.cutroom-backup-*` if you 
 - Plain Node (no dependencies) in `bin/` and `lib/`.
 - One mod (`mod/index.tsx`):
   - the Editor voice in every session (`voice.ts`). It adds `output-styles/editor.md` to the system prompt, because plugin output styles don't reliably load, and asks for a plain `description` on every Bash command;
-  - the band above the prompt (`band.tsx`);
+  - the band above the prompt (`band.tsx`), with the quick actions from `actions.ts`;
+  - the welcome card, the Your call cards and the hidden chrome (`screen.tsx`);
   - the plain-English tool rows (`rows.tsx`, wording in `plain.ts`).
 - Markdown commands in `commands/`, plus the Editor output style.
 - **Tests:**
