@@ -85,6 +85,29 @@ function mcpSentence(tool: string, input: Input): string {
     : server.includes('resolve') || server.includes('davinci')
       ? 'Resolve'
       : sentenceCase(humanize(m[1].replace(/^claude_ai_/, '').replace(/^plugin_[^_]+_/, '')))
+  if (label === 'Resolve') {
+    // Resolve's own server works through scripts: the row reads the script's
+    // first plain comment, which the Editor voice asks Claude to write.
+    if (/run_script/.test(m[2])) {
+      const plan = /^\s*#\s*(.+)$/m.exec(str(input.script))
+      return plan ? `Resolve: ${sentenceCase(clean(plan[1], 70))}` : 'Resolve: ran a script'
+    }
+    const quiet: Record<string, string> = {
+      get_resolve_status: 'Resolve: checked it’s open',
+      launch_resolve: 'Resolve: opened it',
+      get_whats_new: 'Resolve: read what’s new',
+      get_scripting_api: 'Resolve: looked up how to do it',
+      search_scripting_api: 'Resolve: looked up how to do it',
+      get_scripting_docs: 'Resolve: looked up how to do it',
+      list_luts: 'Resolve: listed the looks',
+      list_dctls: 'Resolve: listed the looks',
+      generate_lut: 'Resolve: made a look (LUT)',
+      update_dctl: 'Resolve: made a look (DCTL)',
+      delete_lut: 'Resolve: deleted a look',
+      delete_dctl: 'Resolve: deleted a look',
+    }
+    if (quiet[m[2]]) return quiet[m[2]]
+  }
   const bits: string[] = []
   for (const k of ['model', 'duration', 'name', 'timeline']) {
     const v = input[k]

@@ -192,7 +192,7 @@ A style is guidance, not enforcement. Anything safety-critical lives in the guar
 | Write/Edit/Bash targets outside AI-edits and the media roots | "This touches ~/Desktop/…, outside your editing folders. OK?" |
 | First-time installs: `brew install`, `npm i -g`, `npx <pkg>` fetches, `npx skills add`, `pip install`, `claude plugin install`, model downloads | "Install ffmpeg with Homebrew (~1 min)?" |
 | Quitting or killing Resolve | "Quit Resolve? Unsaved changes could be lost." |
-| Resolve raw-script tools (`run_script`, `run_script_unsafe`) | "Claude wants to run a custom Resolve script. OK?" |
+| Resolve `run_script_unsafe`, and sandboxed `run_script` that deletes, closes or changes clip edges (revised 2026-11-25: sandboxed `run_script` is Resolve's main tool, so it runs and is logged) | "This Resolve script deletes something from the Resolve project ("Remove the bad takes"). OK?" |
 
 **Denied** (the reason tells Claude what to do instead)
 | Pattern | Reason |
