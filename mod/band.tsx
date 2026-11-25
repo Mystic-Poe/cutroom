@@ -105,6 +105,13 @@ export const registerBand = (on: Parameters<Register>[0]) => {
               plain
               dimColor={!!e.props.isWorking}
               onPress={async () => {
+                // never replace a draft he's typing (the band can hold the keys
+                // after a click or ctrl+x tab, with text still in the prompt)
+                const draft = await $.prompt.read()
+                if (draft.text.trim()) {
+                  await $.ui.toast(`Your prompt already has text. Clear it, then press ${a.key} again.`)
+                  return
+                }
                 await $.prompt.fill({ text: a.text })
               }}
             />

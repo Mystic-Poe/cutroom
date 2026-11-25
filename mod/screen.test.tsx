@@ -54,6 +54,7 @@ test('the band shows the quick actions even when nothing is running', async ($, 
 test('pressing an action puts its request in the prompt box, and sends nothing', async ($, on) => {
   engine(on)
   const filled: string[] = []
+  on('prompt.read', () => ({ value: { text: '', cursor: 0 } }))
   on('prompt.fill', (_: unknown, e: any) => {
     filled.push(e.text)
     return { isFilled: true }
@@ -65,6 +66,27 @@ test('pressing an action puts its request in the prompt box, and sends nothing',
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await ui.press({ key: 'cutroom-action-1' })
   expect(filled).toEqual([actionFor('1')!.text])
+  await ui.unmount()
+})
+
+test("an action never replaces a draft he's typing", async ($, on) => {
+  engine(on)
+  const filled: string[] = []
+  const toasts: string[] = []
+  on('prompt.read', () => ({ value: { text: 'cut the intro to', cursor: 16 } }))
+  on('prompt.fill', (_: unknown, e: any) => {
+    filled.push(e.text)
+    return { isFilled: true }
+  })
+  on('ui.toast', (_: unknown, e: any) => {
+    toasts.push(String(e.text ?? e))
+    return { value: undefined }
+  })
+  await $.session.start({ cwd: '/E/AI-edits/nike_spot', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  await ui.press({ key: 'cutroom-action-1' })
+  expect(filled).toEqual([])
+  expect(toasts.length).toBe(1)
   await ui.unmount()
 })
 
